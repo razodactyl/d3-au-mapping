@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style type="text/css">
+
+/* NSW */
+.state-1 {
+  fill: blue;
+}
+
+/* VICTORIA */
+.state-2 {
+  fill: green;
+}
+
+/* QLD */
+.state-3 {
+  fill: maroon;
+}
+
+/* SA */
+.state-4 {
+  fill: purple;
+}
+
+/* WA */
+.state-5 {
+  fill: yellow;
+}
+
+/* TAS */
+.state-6 {
+  fill: orange;
+}
+
+/* NT */
+.state-7 {
+  fill: #f0f;
+}
+
+/* ACT */
+.state-8 {
+  fill: #ff0;
+}
+
+.state-label {
+  font-size: 20px;
+  font-weight: 300;
+  text-anchor: middle;
+}
+
+</style>
+
+<body>
+</body>
+
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="//d3js.org/topojson.v1.min.js"></script>
+
+<script>
+
+var width = 1024, height = 768;
+
+var svg = d3.select('body')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+
+d3.json('./data/au-states.geojson', function(err, au) {
+  if (err) console.error(err);
+
+  var projection = d3.geo.mercator()
+                         .scale(1000)
+                         .translate([-1900, -100]);
+
+  var path = d3.geo.path()
+                   .projection(projection);
+
+  console.log("Features->", au);
+
+  svg.selectAll('.state')
+     .data(au.features)
+     .enter().append('path')
+     .attr('class', function(d) { return 'state-' + d.properties.STATE_CODE })
+     .attr('d', path);
+
+  svg.selectAll('.state-label')
+     .data(au.features)
+     .enter().append('text')
+     .attr('class', function(d) { return 'state-label ' + d.properties.STATE_CODE })
+     .attr('transform', function(d) { return 'translate(' + path.centroid(d) + ')'; })
+     .attr('dy', '.35em')
+     .text(function(d) { return d.properties.STATE_NAME; });
+});
+
+d3.json('./data/listing_data.json', function(err, listings) {
+  if (err) console.error(err);
+
+  console.log(listings);
+
+  var projection = d3.geo.mercator()
+                         .scale(1000)
+                         .translate([-1900, -100]);
+
+  var circles = svg.selectAll('.listing')
+                  .data(listings.slice(0,1000))
+                  .enter()
+                  .append('circle')
+                  .attr('class', 'listing');
+
+  circles.attr('cx', function(d) { return projection([d.geo_lng, d.geo_lat])[0]; })
+        .attr('cy', function(d) { return projection([d.geo_lng, d.geo_lat])[1]; })
+        .attr('r', function(d) {
+          return 3;
+        /*return (d.sold_or_leased_price / 1000) / 200;*/
+        })
+        .attr('fill', 'white')
+        .attr('stroke', 'green')
+        .attr('stroke-width', '1px');
+
+  var tooltip = d3.select('body')
+                  .append('div')
+                  .style('position', 'absolute')
+                  .style('z-index', 10)
+                  .style('visibility', 'hidden')
+                  .text('THIS IS A TOOLTIP');
+
+  circles.on('mouseover', function() {
+    return tooltip.style('visibility', 'visible');
+  });
+
+  circles.on('mousemove', function() {
+    return tooltip.style(
+      'top',
+      (d3.event.pageY-10) + 'px'
+    ).style(
+      'left',
+      (d3.event.pageX+10) + 'px'
+    );
+  });
+
+  circles.on('mouseout', function() {
+    return tooltip.style('visibility', 'hidden');
+  });
+
+
+});
+
+</script>
